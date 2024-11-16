@@ -1,3 +1,4 @@
+#include <notification/notification_messages.h>
 #include "main_scene.h"
 #include "../game_state.h"
 #include "../settings.h"

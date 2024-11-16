@@ -1,8 +1,9 @@
 #include "helpers.h"
+#include "list.h"
 #include <furi.h>
 #include <math.h>
 
-uint8_t pointer_count=0;
+int16_t pointer_count=0;
 
 float inverse_tanh(double x) {
     return 0.5f * (float) log((1 + x) / (1 - x));
@@ -105,19 +106,17 @@ int number_size(uint8_t num) {
     return size;
 }
 
-
 void *_allocate(size_t size, const char *file, int line, const char *func) {
     pointer_count++;
     void *data=malloc(size);
-    FURI_LOG_I("Memory", "Allocated %d bytes at %p\tcaller: %s:%s():%i", size, data, get_basename((char *) file), func, line);
-
+    FURI_LOG_D("Memory", "Allocated %d bytes at %p\tcaller: %s:%s():%i", size, data, get_basename((char *) file), func, line);
     return data;
 }
 
 void _release(void *p, const char *file, int line, const char *func) {
     check_pointer(p);
     pointer_count--;
-    FURI_LOG_I("Memory", "Releasing %p\tcaller:%s:%s():%i", p, get_basename((char *) file), func, line);
+    FURI_LOG_D("Memory", "Releasing %p\tcaller:%s:%s():%i", p, get_basename((char *) file), func, line);
     free(p);
     p=NULL;
 }

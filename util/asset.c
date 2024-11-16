@@ -14,7 +14,10 @@ Buffer *asset_load_icon(const Icon *icon) {
     if (icons == NULL) icons = list_make();
 
     Buffer *data = buffer_decompress_icon(icon);
-    list_push_back(data, icons);
+    AssetIcon *asset_icon = allocate(sizeof(AssetIcon));
+    asset_icon->address = icon;
+    asset_icon->buffer = data;
+    list_push_back(asset_icon, icons);
     return data;
 }
 
@@ -39,7 +42,8 @@ void asset_cleanup() {
     while (start) {
         ListItem *next = start->next;
         AssetIcon *icon = start->data;
-        free(icon->buffer);
+        release(icon->buffer->data);
+        release(icon->buffer);
         release(start->data);
         release(start);
         start = next;

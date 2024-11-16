@@ -1,7 +1,7 @@
 #pragma once
 
 #include <furi.h>
-//#define DEBUG_BUILD
+#define DEBUG_BUILD
 
 #define M_PIX2        6.28318530717958647692    /* 2 pi */
 #define l_abs(x) ((x) < 0 ? -(x) : (x))
