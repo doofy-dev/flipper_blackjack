@@ -79,4 +79,4 @@ void buffer_draw_rbox_frame(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, 
 
 void buffer_draw_box(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, int16_t y1, enum PixelColor draw_mode);
 
-
+Buffer* buffer_decompress_icon(const Icon* icon);

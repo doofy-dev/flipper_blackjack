@@ -2,6 +2,7 @@
 #include <furi.h>
 #include <input/input.h>
 #include <gui/gui.h>
+#include <notification/notification.h>
 #include "buffer.h"
 #include "list.h"
 
@@ -22,6 +23,7 @@ typedef struct {
     float delta_time;
     List *scenes;
     ListItem *current_scene;
+    NotificationApp *notification_app;
     SceneSwitch scene_switch;
     uint8_t scene_index;
     Buffer *buffer;
@@ -31,6 +33,7 @@ typedef struct {
 struct Scene{
     const char* name;
     void (*start)(void *data, SceneData* sceneData);
+    void (*end)(void *data, SceneData* sceneData);
     void (*render)(void *data, SceneData* sceneData);
     void (*render_ui)(void *data, SceneData* sceneData);
 

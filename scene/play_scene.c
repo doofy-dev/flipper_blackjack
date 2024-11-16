@@ -1,8 +1,9 @@
+#include <blackjack_icons.h>
 #include "play_scene.h"
 #include "../game_state.h"
 #include "../scene_setup.h"
 #include "../util/helpers.h"
-#include "../assets.h"
+#include "../util/asset.h"
 
 typedef enum {
     Hit,
@@ -19,6 +20,7 @@ const char *menu_items[5] = {
 bool can_insure = false;
 static MenuItems selectedMenu;
 static char str[10];
+static Buffer *icon_play;
 
 static bool is_doubling=false;
 static bool is_hitting=false;
@@ -34,7 +36,9 @@ void play_start(void *data, SceneData *sceneData) {
     is_doubling=false;
     is_hitting=false;
     swap_hand=false;
+    icon_play= asset_get_icon(&I_play);
 }
+
 
 void play_render(void *data, SceneData *sceneData) {
     GameState *state = (GameState *) data;
@@ -61,18 +65,18 @@ void play_render(void *data, SceneData *sceneData) {
     if (sceneData->current_scene && sceneData->current_scene->data == &play_screen) {
         buffer_set_sprite_rotation(-90);
         Vector pos = (Vector) {25, SCREEN_HEIGHT - 23};
-        buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_play, &pos);
+        buffer_draw_all(sceneData->buffer, icon_play, &pos);
         pos.y += 16;
 
         buffer_set_sprite_rotation(90);
-        buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_play, &pos);
+        buffer_draw_all(sceneData->buffer, (Buffer *) icon_play, &pos);
     }
 }
 
 void play_render_ui(void *data, SceneData *sceneData) {
     GameState *game_state = data;
     //draw player coins, bet and hand counter
-    char *score = money_formatter(game_state->state->balance, MAX_SCORE, (game_state->state->balance_mul + 1) * 2);
+    char *score = money_formatter(game_state->state->balance, MAX_SCORE, game_state->state->balance_mul);
     canvas_set_font(sceneData->canvas, FontSecondary);
     canvas_set_color(sceneData->canvas, ColorBlack);
     canvas_draw_str_aligned(sceneData->canvas, SCREEN_WIDTH, 5, AlignRight, AlignCenter, "Balance:");

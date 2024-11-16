@@ -1,34 +1,26 @@
 #include "card.h"
 #include "helpers.h"
-#include "../assets.h"
+#include "asset.h"
 
-static Buffer *letters[] = {
-    (Buffer *) &sprite_2,
-    (Buffer *) &sprite_3,
-    (Buffer *) &sprite_4,
-    (Buffer *) &sprite_5,
-    (Buffer *) &sprite_6,
-    (Buffer *) &sprite_7,
-    (Buffer *) &sprite_8,
-    (Buffer *) &sprite_9,
-    (Buffer *) &sprite_10,
-    (Buffer *) &sprite_J,
-    (Buffer *) &sprite_Q,
-    (Buffer *) &sprite_K,
-    (Buffer *) &sprite_A,
-};
+static Buffer *letters[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
-static Buffer *suits[] = {
-    (Buffer *) &sprite_hearths,
-    (Buffer *) &sprite_spades,
-    (Buffer *) &sprite_diamonds,
-    (Buffer *) &sprite_clubs
-};
+static Buffer *suits[] = {NULL, NULL, NULL, NULL};
 
-static Buffer *backSide = (Buffer *) &sprite_pattern_big;
+static Buffer *backSide = NULL;
 
+void card_load_suit_assets(const Icon **icons) {
+    for (uint8_t i = 0; i < 4; i++)
+        suits[i] = asset_get_icon(icons[i]);
+}
 
-//TODO: make everything 0 based and shift the transform/rotation
+void card_load_letter_assets(const Icon **icons) {
+    for (uint8_t i = 0; i < 13; i++)
+        letters[i] = asset_get_icon(icons[i]);
+}
+
+void card_load_background(const Icon *icon) {
+    backSide = asset_get_icon(icon);
+}
 
 void card_render_front(Card *c, int16_t x, int16_t y, bool selected, Buffer *buffer, uint8_t size_limit) {
     uint8_t height = fmin(size_limit, 11);
@@ -303,6 +295,7 @@ uint8_t hand_value(List *deck, uint8_t max) {
 }
 
 static Transform transform = {IDENTITY_MATRIX, IDENTITY_MATRIX, IDENTITY_MATRIX, IDENTITY_MATRIX};
+
 void card_compute_animation_state(CardAnimatorData *data, float delta, float speed) {
     if (data->finished) return;
 
@@ -312,7 +305,7 @@ void card_compute_animation_state(CardAnimatorData *data, float delta, float spe
     }
 
     data->state += delta * speed;
-    if(data->state>1)data->state=1;
+    if (data->state > 1)data->state = 1;
     float rotation = lerp_number(data->start_rotation, data->end_rotation, data->state);
     Vector scale;
     vector_lerp(&(data->start_scale), &(data->end_scale), data->state, &scale);

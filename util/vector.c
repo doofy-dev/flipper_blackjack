@@ -71,8 +71,10 @@ void vector_rotate(Vector *const v, float deg, Vector *target) {
     float tx = v->x;
     float ty = v->y;
     float rad = deg * DEG_2_RAD;
-    target->x = (float) (cosf(rad) * tx - sinf(rad) * ty);
-    target->y = (float) (sinf(rad) * tx + cosf(rad) * ty);
+    float cosrad = cosf(rad);
+    float sinrad = sinf(rad);
+    target->x = (float) (cosrad * tx - sinrad * ty);
+    target->y = (float) (sinrad * tx + cosrad * ty);
 }
 
 void vector_rounded(Vector *const source, Vector *target) {

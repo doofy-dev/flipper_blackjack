@@ -12,5 +12,6 @@ App(
     fap_author="@doofy_dev",
     fap_weburl="https://github.com/doofy-dev/flipper_blackjack",
     fap_version="2.0",
+    fap_icon_assets="assets",
     fap_description="Blackjack game for Flipper Zero",
 )

@@ -74,3 +74,7 @@ Card* deck_first_non_flipped(List *deck, int8_t *index);
 void deck_render(List *deck, DeckType type, int16_t x, int16_t y, int8_t selected, bool draw_empty, Buffer *buffer);
 
 void card_compute_animation_state(CardAnimatorData *data, float delta, float speed);
+
+void card_load_suit_assets(const Icon **icons);
+void card_load_letter_assets(const Icon **icons);
+void card_load_background(const Icon *icon);

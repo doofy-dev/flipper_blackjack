@@ -1,14 +1,18 @@
+#include <blackjack_icons.h>
 #include "bet_scene.h"
 #include "../game_state.h"
 #include "../settings.h"
-#include "../assets.h"
+#include "../util/asset.h"
 
 uint8_t bet_mul = 0;
 static Vector play_pos = (Vector) {SCREEN_WIDTH - 4, 58};
+static Buffer *icon_play, *icon_ok;
 
 void bet_start(void *data, SceneData *sceneData) {
     UNUSED(data);
     sceneData->dirty = true;
+    icon_play = asset_get_icon(&I_play);
+    icon_ok = asset_get_icon(&I_ok);
 }
 
 void bet_render(void *data, SceneData *sceneData) {
@@ -28,12 +32,12 @@ void bet_render(void *data, SceneData *sceneData) {
     //draw arrows
     pos = (Vector) {78 - 14 * bet_mul, 21};
     buffer_set_sprite_rotation(-90);
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_play, &pos);
+    buffer_draw_all(sceneData->buffer, icon_play, &pos);
     pos.y = 43;
     buffer_set_sprite_rotation(90);
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_play, &pos);
+    buffer_draw_all(sceneData->buffer, icon_play, &pos);
     buffer_set_sprite_rotation(0);
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_ok, &play_pos);
+    buffer_draw_all(sceneData->buffer, icon_ok, &play_pos);
 }
 
 void bet_render_ui(void *data, SceneData *sceneData) {

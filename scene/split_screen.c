@@ -17,8 +17,7 @@ static Vector target[4] = {
 };
 
 
-static float target_rotation[2] = {-15, 15};
-static float target_scale = 1.75f;
+static float target_scale = 2.0f;
 static bool initial_anim_complete = false;
 static bool outro_anim = false;
 
@@ -50,16 +49,13 @@ void split_start(void *data, SceneData *sceneData) {
         FURI_LOG_W("SPLIT", "Can't place new card to an empty hand");
     }
 
-    uint8_t i = 0;
     for (uint8_t _i = 0; _i < 4; _i++) {
-        if (_i > 1) {
-            i = 1 - (_i % 2);
-        } else i = _i;
+
 
         animatorData[_i].start_position = _i < 2 ? start[_i] : (Vector) {64, 11};
         animatorData[_i].end_position = target[_i];
         animatorData[_i].start_rotation = 0;//_i < 2 ? 0 : (_i == 3 ? 180 : -180);
-        animatorData[_i].end_rotation = _i > 1 ? 0 : target_rotation[i];
+        animatorData[_i].end_rotation = 0;
         animatorData[_i].start_scale = (Vector) {1, 1};
         animatorData[_i].end_scale =
             _i > 1 ? (Vector) {target_scale, -target_scale} : (Vector) {target_scale, target_scale};

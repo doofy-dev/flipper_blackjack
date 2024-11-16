@@ -1,5 +1,7 @@
+#include <notification/notification_messages.h>
 #include "scene.h"
 #include "helpers.h"
+#include "audio.h"
 
 static size_t curr_frame_time = 0;
 static size_t last_frame_time = 0;
@@ -16,12 +18,19 @@ void prepare_scenes(Canvas *canvas) {
     sceneData->scenes = list_make();
     sceneData->buffer = buffer_create(SCREEN_WIDTH, SCREEN_HEIGHT, false);
     sceneData->canvas = canvas;
+
+    sceneData->notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
+    notification_message_block(sceneData->notification_app, &sequence_display_backlight_enforce_on);
 }
 
 void free_scenes() {
     sceneData->canvas = NULL;
     list_clear(sceneData->scenes);
     buffer_release(sceneData->buffer);
+
+    notification_message_block(sceneData->notification_app, &sequence_display_backlight_enforce_auto);
+    furi_record_close(RECORD_NOTIFICATION);
+
     release(sceneData->scenes);
     release(sceneData);
 }
@@ -53,7 +62,6 @@ void prev_scene(void *data) {
 
     start_scene(data);
 }
-
 void start_scene(void *data) {
     if (sceneData->scenes->head == NULL) {
         FURI_LOG_W("SCENE", "Can't start scene, list empty");
@@ -120,6 +128,8 @@ void update_scene(void *data) {
     {
         s->update(data, sceneData);
     }
+
+    update_audio(sceneData->notification_app);
 
     if (sceneData->scene_switch != Stay) {
         handle_scene_switch(data);

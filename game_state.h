@@ -100,7 +100,6 @@ typedef struct {
     Gui *gui;
     FuriPubSub *input;
     FuriPubSubSubscription *input_subscription;
-    NotificationApp *notification_app;
     bool exit;
 
     bool sound_enabled; //store, on main menu display a speaker image, left arrow toggles it

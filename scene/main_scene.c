@@ -1,9 +1,11 @@
 #include "main_scene.h"
-#include "../assets.h"
 #include "../game_state.h"
 #include "../settings.h"
 #include "../util/helpers.h"
-#include "../notes.h"
+#include "blackjack_icons.h"
+#include "../util/asset.h"
+#include "../util/audio.h"
+#include "../sounds.h"
 
 static Vector logo_pos = (Vector) {62, 32};
 static Vector cards_pos = (Vector) {111, 30};
@@ -12,33 +14,43 @@ static Vector speaker_off_pos = (Vector) {14, 57};
 static Vector left_arrow_pos = (Vector) {3, 57};
 static Vector play_pos = (Vector) {SCREEN_WIDTH - 4, 58};
 
-static size_t last_start = 0;
-static int8_t note = 0;
+static Buffer *icon_main, *icon_logo, *icon_speaker_on, *icon_speaker_off, *icon_play, *icon_ok;
 
 void main_start(void *data, SceneData *sceneData) {
-    UNUSED(data);
     UNUSED(sceneData);
-    //load settings
+    GameState *state = (GameState *) data;
+
+    icon_main = asset_get_icon(&I_main_image);
+    icon_logo = asset_get_icon(&I_logo);
+    icon_speaker_on = asset_get_icon(&I_speaker_on);
+    icon_speaker_off = asset_get_icon(&I_speaker_off);
+    icon_play = asset_get_icon(&I_play);
+    icon_ok = asset_get_icon(&I_ok);
+
+    set_volume(0.25f);
+    set_audio(&menu_music);
+    if (state->sound_enabled)
+        play_audio();
 }
 
 void main_render(void *data, SceneData *sceneData) {
     GameState *state = (GameState *) data;
     buffer_set_sprite_rotation(0);
 
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_main_image, &cards_pos);
+    buffer_draw_all(sceneData->buffer, icon_main, &cards_pos);
 
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_logo, &logo_pos);
+    buffer_draw_all(sceneData->buffer, icon_logo, &logo_pos);
 
     if (state->sound_enabled)
-        buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_speaker_on, &speaker_on_pos);
+        buffer_draw_all(sceneData->buffer, icon_speaker_on, &speaker_on_pos);
     else
-        buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_speaker_off, &speaker_off_pos);
+        buffer_draw_all(sceneData->buffer, icon_speaker_off, &speaker_off_pos);
 
     buffer_set_sprite_rotation(180);
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_play, &left_arrow_pos);
+    buffer_draw_all(sceneData->buffer, icon_play, &left_arrow_pos);
 
     buffer_set_sprite_rotation(0);
-    buffer_draw_all(sceneData->buffer, (Buffer *) &sprite_ok, &play_pos);
+    buffer_draw_all(sceneData->buffer, icon_ok, &play_pos);
 }
 
 void main_render_ui(void *data, SceneData *sceneData) {
@@ -50,22 +62,8 @@ void main_render_ui(void *data, SceneData *sceneData) {
 }
 
 void main_update(void *data, SceneData *sceneData) {
-    sceneData->clear_buffer = sceneData->dirty;
-    GameState *state = (GameState *) data;
-    if (state->sound_enabled) {
-        size_t t = curr_time();
-        if ((last_start - t) > 250) {
-            if (note >= 0) {
-                music[0] = music_notes[note];
-
-                notification_message_block(state->notification_app, (const NotificationSequence *) &music);
-
-                last_start = t;
-            }
-            note = (note + 1) % 32;
-        }
-    }
-
+    UNUSED(data);
+    UNUSED(sceneData);
 }
 
 void main_input(void *data, SceneData *sceneData, InputKey key, InputType type) {
@@ -74,12 +72,16 @@ void main_input(void *data, SceneData *sceneData, InputKey key, InputType type) 
     if (type == InputTypePress) {
         if (key == InputKeyLeft) {
             state->sound_enabled = !state->sound_enabled;
-            sceneData->dirty = true;
-            note=0;
+            if (state->sound_enabled) {
+                play_audio();
+            } else {
+                stop_audio();
+            }
             save_settings(state);
         } else if (key == InputKeyOk) {
             sceneData->scene_switch = Next;
         }
     }
+    sceneData->dirty = true;
 
 }

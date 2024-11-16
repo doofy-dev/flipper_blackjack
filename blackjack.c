@@ -1,12 +1,31 @@
 #include <furi.h>
 #include <notification/notification_messages.h>
+#include "blackjack_icons.h"
 #include "util/scene.h"
 #include "game_state.h"
 #include "util/helpers.h"
 #include "scene_setup.h"
 #include "settings.h"
+#include "util/asset.h"
 
 static FuriMutex *update_mutex;
+static const Icon *suits[4] = {&I_hearths, &I_spades, &I_diamonds, &I_clubs};
+static const Icon *pattern = &I_pattern_big;
+static const Icon *letters[13] = {
+    &I_2,
+    &I_3,
+    &I_4,
+    &I_5,
+    &I_6,
+    &I_7,
+    &I_8,
+    &I_9,
+    &I_10,
+    &I_J,
+    &I_Q,
+    &I_K,
+    &I_A
+};
 
 static void gui_input_events_callback(const void *value, void *ctx) {
     furi_mutex_acquire(update_mutex, FuriWaitForever);
@@ -32,9 +51,12 @@ GameState *prepare() {
     gameState->input = furi_record_open(RECORD_INPUT_EVENTS);
     gameState->gui = furi_record_open(RECORD_GUI);
     gameState->canvas = gui_direct_draw_acquire(gameState->gui);
-    gameState->notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
-    notification_message_block(gameState->notification_app, &sequence_display_backlight_enforce_on);
     gameState->input_subscription = furi_pubsub_subscribe(gameState->input, gui_input_events_callback, gameState);
+
+    // card graphics
+    card_load_suit_assets(suits);
+    card_load_letter_assets(letters);
+    card_load_background(pattern);
 
 
     //set game data
@@ -88,7 +110,6 @@ static void direct_draw_run(GameState *instance) {
 static void cleanup(GameState *instance) {
     furi_pubsub_unsubscribe(instance->input, instance->input_subscription);
 
-    notification_message_block(instance->notification_app, &sequence_display_backlight_enforce_auto);
 
     //free game data
 
@@ -101,11 +122,11 @@ static void cleanup(GameState *instance) {
 
     //free the rest
     instance->canvas = NULL;
-    free_scenes();
     gui_direct_draw_release(instance->gui);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_INPUT_EVENTS);
-    furi_record_close(RECORD_NOTIFICATION);
+    free_scenes();
+    asset_cleanup();
 
     free(instance);
     furi_mutex_free(update_mutex);

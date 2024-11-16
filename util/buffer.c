@@ -1,8 +1,8 @@
 #include "buffer.h"
 #include "helpers.h"
 #include "matrix.h"
-#include <memory.h>
 #include <furi.h>
+#include <toolbox/compress.h>
 
 static enum DrawMode drawMode = BlackOnly;
 static Matrix *current_transform;
@@ -185,6 +185,8 @@ bool average_pixel(Buffer *const sprite, int x, int y, bool rotated) {
     return (val / 9.f) > 0.15f;
 }//*/
 
+
+
 void
 buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum PixelColor color, Vector *const position,
                      uint8_t x_limit, uint8_t y_limit) {
@@ -197,18 +199,21 @@ buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum P
     Vector scaling = {1, 1};
     float rotation = 0;
 
+
     if (current_transform) {
         matrix_get_scaling(current_transform, &scaling);
         rotation = matrix_get_rotation(current_transform);
     }
+    rotation *= RAD_2_DEG;
+
+    float cosrad = cosf(current_sprite_rotation*DEG_2_RAD);
+    float sinrad = sinf(current_sprite_rotation*DEG_2_RAD);
 
     float x_inc = MAX(1 / scaling.x, 0.1);
     float y_inc = MAX(1 / scaling.y, 0.1);
-//    bool rotated = false;
-    if ((int) (rotation * RAD_2_DEG) % 30 != 0 || ((int) current_sprite_rotation) % 30 != 0) {
-        x_inc /= 2.0f;
-        y_inc /= 2.0f;
-//        rotated = true;
+    if ((int) rotation % 45 != 0 || ((int) (current_sprite_rotation)) % 45 != 0) {
+        x_inc /= 1.5f;
+        y_inc /= 1.5f;
     }
 
     float w2 = sprite->width / 2;
@@ -221,7 +226,7 @@ buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum P
         for (float x = 0; x < x_cap; x += x_inc) {
             isOn = (lastX == (int) x && lastY == (int) y) ||
                    //                average_pixel(sprite, (int) x, (int) y, rotated) == is_black;
-                   buffer_get_absolute_pixel(sprite, (int) x, (int) y) == is_black;
+                   buffer_get_absolute_pixel(sprite, (int) (x), (int) (y)) == is_black;
             if (isOn || color == Set) {
                 lastX = (int) x;
                 lastY = (int) y;
@@ -230,7 +235,12 @@ buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum P
                 curr.y = (float) y - h2;
                 //rotate sprite first to not need matrix swap frequently
                 if (current_sprite_rotation != 0) {
-                    vector_rotate(&curr, current_sprite_rotation, &curr);
+                    float x,y;
+                    x=cosrad * curr.x - sinrad*curr.y;
+                    y=sinrad * curr.x + cosrad*curr.y;
+                    curr.x=x;
+                    curr.y=y;
+//                    vector_rotate(&curr, current_sprite_rotation, &curr);
                 }
                 curr.x += position->x;
                 curr.y += position->y;
@@ -243,8 +253,8 @@ buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum P
                 transform.x += sw2;
                 transform.y += sh2;
 
-                finalX = (int) (transform.x);
-                finalY = (int) (transform.y);
+                finalX = (int) roundf(transform.x-0.11f);
+                finalY = (int) roundf(transform.y-0.11f);
                 if (buffer_test_coordinate(target, finalX, finalY)) {
                     if (isOn) {
                         buffer_set_absolute_pixel(target, finalX, finalY, color == Set ? Black : color);
@@ -383,7 +393,6 @@ void buffer_draw_rbox(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, int16_
     }
 }
 
-//TODO: maybe wrong
 void buffer_draw_rbox_frame(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, int16_t y1, enum PixelColor draw_mode) {
     buffer_draw_line(buffer, x0 + 1, y0, x1 - 1, y0, draw_mode);
     buffer_draw_line(buffer, x0 + 1, y1, x1 - 1, y1, draw_mode);
@@ -404,7 +413,6 @@ void buffer_draw_box(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, int16_t
         t = (Vector) {x1, y1};
     }
 
-
     if (s.x < t.x) {
         float a = s.x;
         s.x = t.x;
@@ -423,4 +431,23 @@ void buffer_draw_box(Buffer *buffer, int16_t x0, int16_t y0, int16_t x1, int16_t
             buffer_set_absolute_pixel(buffer, x, y, draw_mode);
         }
     }
+}
+
+Buffer* buffer_decompress_icon(const Icon* icon){
+    uint8_t* p_icon_data;
+    Buffer *b = malloc(sizeof(Buffer));
+
+    b->width = (int)(ceil(icon_get_width(icon) / 8.0)*8);
+    b->height = icon_get_height(icon);
+
+    uint16_t size = buffer_size(b->width, b->height);
+    b->data=malloc_buffer(b->width, b->height);
+
+    CompressIcon* compress_icon = compress_icon_alloc(size);
+    compress_icon_decode(compress_icon, icon_get_frame_data(icon, 0), &p_icon_data);
+
+    memcpy(b->data, p_icon_data, size);
+    compress_icon_free(compress_icon);
+
+    return b;
 }
