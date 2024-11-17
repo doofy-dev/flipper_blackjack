@@ -62,13 +62,6 @@
 #define MAX_SCORE 1000000000
 #define MAX_BET 200
 
-typedef struct {
-    Card *card;
-    Vector start;
-    Vector target;
-    Vector current;
-    float t;
-} AnimatedCard;
 
 typedef struct {
     List *deck;
@@ -78,6 +71,7 @@ typedef struct {
     uint8_t current_hand;
 
     bool doubled[4];
+    uint8_t current_bet[4];
     bool insurance;
     /*
      * only the initial bet
@@ -87,6 +81,7 @@ typedef struct {
      * split: hand_count * bet
      */
     uint8_t bet;    //store
+
 
     //subtract from balance after betting/splitting/doubling
     uint32_t balance; //store

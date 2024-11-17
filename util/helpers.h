@@ -1,7 +1,7 @@
 #pragma once
 
 #include <furi.h>
-#define DEBUG_BUILD
+//#define DEBUG_BUILD
 
 #define M_PIX2        6.28318530717958647692    /* 2 pi */
 #define l_abs(x) ((x) < 0 ? -(x) : (x))
@@ -10,16 +10,16 @@
 
 
 #ifdef DEBUG_BUILD
+#define release(X) _release_debug( X, __FILE__, __LINE__, __FUNCTION__)
 #define check_pointer(X) _check_ptr( X, __FILE__, __LINE__, __FUNCTION__)
 #define allocate(X) _allocate( X, __FILE__, __LINE__, __FUNCTION__)
-#define release(X) _release( X, __FILE__, __LINE__, __FUNCTION__)
 #else
 #define check_pointer(X) _test_ptr(X)
-#define trace(X) while(0)
-
 #define allocate(X) malloc(X)
-#define release(X) _release2(X)
+#define release(X) _release(X)
 #endif
+
+
 
 char *get_basename(const char *path);
 
@@ -37,13 +37,13 @@ bool _check_ptr(void *p, const char *file, int line, const char *func);
 float inverse_tanh(double x);
 
 float lerp_number(float a, float b, float t);
-int number_size(uint8_t num);
+int count_digits(uint8_t num);
 
 size_t curr_time();
 
 void *_allocate(size_t size, const char *file, int line, const char *func);
-void _release(void *p,const char *file, int line, const char *func);
-void _release2(void *p);
+void _release_debug(void *p,const char *file, int line, const char *func);
+void _release(void *p);
 void check_leak();
 
 

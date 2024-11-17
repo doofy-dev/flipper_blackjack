@@ -21,6 +21,7 @@ void prepare_scenes(Canvas *canvas) {
 
     sceneData->notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
     notification_message_block(sceneData->notification_app, &sequence_display_backlight_enforce_on);
+    setup_audio(sceneData->notification_app);
 }
 
 void free_scenes() {
@@ -129,7 +130,7 @@ void update_scene(void *data) {
         s->update(data, sceneData);
     }
 
-    update_audio(sceneData->notification_app);
+    update_audio();
 
     if (sceneData->scene_switch != Stay) {
         handle_scene_switch(data);

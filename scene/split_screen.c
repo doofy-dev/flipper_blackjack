@@ -24,26 +24,28 @@ static bool outro_anim = false;
 void split_start(void *data, SceneData *sceneData) {
     UNUSED(sceneData);
     timer = 0;
-    GameState *state = (GameState *) data;
+    GameState *game_state = (GameState *) data;
     initial_anim_complete = false;
     outro_anim = false;
     int8_t target_hand = -1;
     for (int8_t i = 0; i < 4; i++) {
-        if (state->state->hand[i]->count == 0) {
-            list_push_back(list_pop_back(state->state->hand[state->state->current_hand]), state->state->hand[i]);
+        if (game_state->state->hand[i]->count == 0) {
+            list_push_back(list_pop_back(game_state->state->hand[game_state->state->current_hand]), game_state->state->hand[i]);
             target_hand = i;
-            state->state->hand_count++;
+            game_state->state->hand_count++;
             break;
         }
     }
 
     if (target_hand >= 0) {
-        Card *c = list_pop_back(state->state->deck);
-        list_push_back(c, state->state->hand[state->state->current_hand]);
+        Card *c = list_pop_back(game_state->state->deck);
+        list_push_back(c, game_state->state->hand[game_state->state->current_hand]);
 
-        c = list_pop_back(state->state->deck);
+        c = list_pop_back(game_state->state->deck);
 
-        list_push_back(c, state->state->hand[target_hand]);
+        list_push_back(c, game_state->state->hand[target_hand]);
+
+        game_state->state->current_bet[target_hand] = game_state->state->bet;
 
     } else {
         FURI_LOG_W("SPLIT", "Can't place new card to an empty hand");
@@ -63,13 +65,13 @@ void split_start(void *data, SceneData *sceneData) {
         animatorData[_i].state = 0;
 
         if (_i == 0)
-            animatorData[_i].card = list_peek_index(state->state->hand[state->state->current_hand], 0);
+            animatorData[_i].card = list_peek_index(game_state->state->hand[game_state->state->current_hand], 0);
         else if (_i == 1)
-            animatorData[_i].card = list_peek_index(state->state->hand[target_hand], 0);
+            animatorData[_i].card = list_peek_index(game_state->state->hand[target_hand], 0);
         else if (_i == 2)
-            animatorData[_i].card = list_peek_index(state->state->hand[state->state->current_hand], 1);
+            animatorData[_i].card = list_peek_index(game_state->state->hand[game_state->state->current_hand], 1);
         else if (_i == 3)
-            animatorData[_i].card = list_peek_index(state->state->hand[target_hand], 1);
+            animatorData[_i].card = list_peek_index(game_state->state->hand[target_hand], 1);
 
         card_compute_animation_state(&(animatorData[_i]), 0, 0);
     }

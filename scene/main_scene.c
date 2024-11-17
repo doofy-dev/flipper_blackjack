@@ -38,6 +38,7 @@ void main_render(void *data, SceneData *sceneData) {
     GameState *state = (GameState *) data;
     buffer_set_sprite_rotation(0);
 
+    check_pointer(NULL);
     buffer_draw_all(sceneData->buffer, icon_main, &cards_pos);
 
     buffer_draw_all(sceneData->buffer, icon_logo, &logo_pos);
@@ -80,6 +81,7 @@ void main_input(void *data, SceneData *sceneData, InputKey key, InputType type) 
             }
             save_settings(state);
         } else if (key == InputKeyOk) {
+            stop_audio();
             sceneData->scene_switch = Next;
         }
     }

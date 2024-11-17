@@ -40,8 +40,9 @@ void set_audio(MusicData *music);
 
 void play_audio();
 
-void update_audio(NotificationApp *notification_app);
+void update_audio();
 
 void stop_audio();
+void setup_audio(NotificationApp *notification_app);
 
 void set_volume(float volume);

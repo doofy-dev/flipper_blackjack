@@ -22,7 +22,11 @@ void intro_start(void *data, SceneData *sceneData) {
     for (uint8_t i = 0; i < 4; i++) {
         list_free_data(game_state->state->hand[i]);
         game_state->state->doubled[i] = false;
+        game_state->state->current_bet[i] = 0;
     }
+
+    game_state->state->current_bet[0] = game_state->state->bet;
+
     game_state->state->insurance = false;
     game_state->state->hand_count = 1;
     game_state->state->current_hand = 0;

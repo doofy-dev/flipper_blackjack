@@ -2,14 +2,22 @@
 #include "audio.h"
 #include "helpers.h"
 
+
+#define INSTRUCTIONS_PER_MICROSECOND (SystemCoreClock / 1000000)
+
 static MusicData *current_music = NULL;
 static bool looped = false;
 static bool stopped = true;
-static size_t last_start = 0;
-static size_t next_note = 0;
+static uint32_t last_start = 0;
+static uint32_t next_note = 0;
 
 static uint32_t current_note = 0;
 static float current_bpm = 0;
+static NotificationApp *notification_app;
+
+void setup_audio(NotificationApp *notificationApp){
+    notification_app=notificationApp;
+}
 
 static const float reference_freq = 16.35f; //C0
 
@@ -55,16 +63,16 @@ void set_audio(MusicData *data) {
 }
 
 
-void update_audio(NotificationApp *notification_app) {
+void update_audio() {
     if (!notification_app || current_music == NULL || stopped ||
         (looped == true && current_music->loop == false))
         return;
 
-    size_t t = curr_time();
-    if ((last_start - t) > next_note) {
+    size_t t = furi_get_tick();
+    if ((t-last_start) > next_note) {
         Beat curr = current_music->music_notes[current_note];
         delay.data.delay.length = (int) floorf(current_bpm * curr.beat_length);
-        next_note = delay.data.delay.length;
+        next_note = delay.data.delay.length ;
         if (curr.note >= 0) {
             note.data.sound.frequency = get_frequency(&curr);
             note.type = NotificationMessageTypeSoundOn;
@@ -78,7 +86,7 @@ void update_audio(NotificationApp *notification_app) {
             off.data.vibro.on=false;
         }
 
-        notification_message_block(notification_app, (const NotificationSequence *) &music_sequence);
+        notification_message(notification_app, (const NotificationSequence *) &music_sequence);
 
         last_start = t;
         current_note = (current_note + 1) % current_music->length;
@@ -88,7 +96,8 @@ void update_audio(NotificationApp *notification_app) {
 void play_audio() {
     stopped = false;
     looped = false;
-    last_start = 0;
+    last_start = furi_get_tick();
+    next_note = (int) floorf(current_bpm) ;
     current_note = 0;
 }
 

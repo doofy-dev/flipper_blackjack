@@ -83,7 +83,7 @@ char *money_formatter(uint32_t score, uint32_t max, uint8_t multiplier) {
     return drawChar;
 }
 
-int number_size(uint8_t num) {
+int count_digits(uint8_t num) {
     int size = 1, curr;
     uint8_t n = num;
     while (n > 10) {
@@ -113,17 +113,19 @@ void *_allocate(size_t size, const char *file, int line, const char *func) {
     return data;
 }
 
-void _release(void *p, const char *file, int line, const char *func) {
+void _release_debug(void *p, const char *file, int line, const char *func) {
     check_pointer(p);
     pointer_count--;
     FURI_LOG_D("Memory", "Releasing %p\tcaller:%s:%s():%i", p, get_basename((char *) file), func, line);
+
+    _release(p);
+}
+
+void _release(void *p){
     free(p);
     p=NULL;
 }
-void _release2(void *p){
-    free(p);
-    p=NULL;
-}
+
 void check_leak(){
     if(pointer_count>0){
         FURI_LOG_E("Memory", "Leak detected, pointers left in memory: %d", pointer_count);
