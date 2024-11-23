@@ -14,7 +14,7 @@
  *                           / \
  *                            |
  *                           \ /
-*                           Split
+ *                           Split
  */
 
 Scene main_screen = (Scene) {
@@ -37,20 +37,20 @@ Scene bet_screen = (Scene) {
 
 Scene intro_screen = (Scene) {
     .name="INTRO",
-    .start=intro_start,
-    .render=intro_render,
-    .render_ui=intro_render_ui,
-    .update=intro_update,
-    .input=intro_input,
+    .start=&intro_start,
+    .render=&intro_render,
+    .render_ui=&intro_render_ui,
+    .update=&intro_update,
+    .input=&intro_input,
 };
 
 Scene play_screen = (Scene) {
     .name="PLAY",
-    .start=play_start,
-    .render=play_render,
-    .render_ui=play_render_ui,
-    .update=play_update,
-    .input=play_input,
+    .start=&play_start,
+    .render=&play_render,
+    .render_ui=&play_render_ui,
+    .update=&play_update,
+    .input=&play_input,
 };
 
 Scene split_screen = (Scene) {

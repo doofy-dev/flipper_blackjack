@@ -29,7 +29,7 @@ void main_start(void *data, SceneData *sceneData) {
     icon_ok = asset_get_icon(&I_ok);
 
     set_volume(0.25f);
-    set_audio(&menu_music);
+    set_audio(&bg_music);
     if (state->sound_enabled)
         play_audio();
 }

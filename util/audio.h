@@ -1,13 +1,8 @@
 #pragma once
 
-
 #include <notification/notification.h>
 
-
-
 typedef enum {
-    NOTE_BUZZ = -2,
-    NOTE_NONE = -1,
     NOTE_C = 0,
     NOTE_CS = 1,
     NOTE_D = 2,
@@ -20,6 +15,10 @@ typedef enum {
     NOTE_A = 9,
     NOTE_AS = 10,
     NOTE_B = 11,
+
+    NOTE_END = 12,
+    NOTE_BUZZ = 13,
+    NOTE_NONE = 14,
 } Note;
 
 typedef struct {
@@ -30,10 +29,10 @@ typedef struct {
 
 
 typedef struct {
-    Beat *music_notes;
-    uint32_t length;
-    uint8_t bpm;
-    bool loop;
+    uint32_t *music_notes;  // list of the notes, always end with NOTE_END!!
+    uint8_t bpm;        // beats per minute
+    float separation;   // note separation, shortens the notes so they can have a small gap (1 = 1 whole beat)
+    bool loop;          // automatically restart the music if it reaches the end
 } MusicData;
 
 void set_audio(MusicData *music);
@@ -43,6 +42,7 @@ void play_audio();
 void update_audio();
 
 void stop_audio();
+
 void setup_audio(NotificationApp *notification_app);
 
 void set_volume(float volume);

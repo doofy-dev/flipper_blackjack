@@ -2,6 +2,7 @@
 #include "scene.h"
 #include "helpers.h"
 #include "audio.h"
+#include "tweener.h"
 
 static size_t curr_frame_time = 0;
 static size_t last_frame_time = 0;
@@ -19,13 +20,17 @@ void prepare_scenes(Canvas *canvas) {
     sceneData->buffer = buffer_create(SCREEN_WIDTH, SCREEN_HEIGHT, false);
     sceneData->canvas = canvas;
 
+
     sceneData->notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
     notification_message_block(sceneData->notification_app, &sequence_display_backlight_enforce_on);
     setup_audio(sceneData->notification_app);
+
+    tweener_prepare(sceneData);
 }
 
 void free_scenes() {
     sceneData->canvas = NULL;
+    tweener_cleanup();
     list_clear(sceneData->scenes);
     buffer_release(sceneData->buffer);
 
@@ -129,6 +134,8 @@ void update_scene(void *data) {
     {
         s->update(data, sceneData);
     }
+
+    tweener_update();
 
     update_audio();
 

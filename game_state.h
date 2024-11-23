@@ -69,7 +69,7 @@ typedef struct {
     List *hand[4];
     uint8_t hand_count;
     uint8_t current_hand;
-
+    Tweener tweeners[4];
     bool doubled[4];
     uint8_t current_bet[4];
     bool insurance;

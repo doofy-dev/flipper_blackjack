@@ -4,10 +4,12 @@
 
 static CardAnimatorData animatorData[4];
 
+#define SPLIT_ANIM_LENGTH 0.75f
+
 static float timer = 0;
 static Vector deck_start = {64,
                             6};
-static Vector start[4] = {{SCREEN_WIDTH - 18, SCREEN_HEIGHT - 13},
+static Vector start[2] = {{SCREEN_WIDTH - 18, SCREEN_HEIGHT - 13},
                           {SCREEN_WIDTH - 10, SCREEN_HEIGHT - 13}};
 static Vector target[4] = {
     {25,  40},
@@ -18,19 +20,18 @@ static Vector target[4] = {
 
 
 static float target_scale = 2.0f;
-static bool initial_anim_complete = false;
 static bool outro_anim = false;
 
 void split_start(void *data, SceneData *sceneData) {
     UNUSED(sceneData);
     timer = 0;
     GameState *game_state = (GameState *) data;
-    initial_anim_complete = false;
     outro_anim = false;
     int8_t target_hand = -1;
     for (int8_t i = 0; i < 4; i++) {
         if (game_state->state->hand[i]->count == 0) {
-            list_push_back(list_pop_back(game_state->state->hand[game_state->state->current_hand]), game_state->state->hand[i]);
+            list_push_back(list_pop_back(game_state->state->hand[game_state->state->current_hand]),
+                           game_state->state->hand[i]);
             target_hand = i;
             game_state->state->hand_count++;
             break;
@@ -52,17 +53,15 @@ void split_start(void *data, SceneData *sceneData) {
     }
 
     for (uint8_t _i = 0; _i < 4; _i++) {
-
-
         animatorData[_i].start_position = _i < 2 ? start[_i] : (Vector) {64, 11};
         animatorData[_i].end_position = target[_i];
         animatorData[_i].start_rotation = 0;//_i < 2 ? 0 : (_i == 3 ? 180 : -180);
         animatorData[_i].end_rotation = 0;
         animatorData[_i].start_scale = (Vector) {1, 1};
-        animatorData[_i].end_scale =
-            _i > 1 ? (Vector) {target_scale, -target_scale} : (Vector) {target_scale, target_scale};
-        animatorData[_i].finished = false;
-        animatorData[_i].state = 0;
+        animatorData[_i].flip = true;
+
+        animatorData[_i].end_scale = (Vector) {target_scale, target_scale};
+        if (_i > 1) animatorData[_i].end_scale.y *= -1;
 
         if (_i == 0)
             animatorData[_i].card = list_peek_index(game_state->state->hand[game_state->state->current_hand], 0);
@@ -73,28 +72,29 @@ void split_start(void *data, SceneData *sceneData) {
         else if (_i == 3)
             animatorData[_i].card = list_peek_index(game_state->state->hand[target_hand], 1);
 
-        card_compute_animation_state(&(animatorData[_i]), 0, 0);
+        game_state->state->tweeners[_i] = (Tweener) {
+            .update=&card_compute_animation_state,
+            .length=SPLIT_ANIM_LENGTH,
+            .delay=_i < 2 ? 0 : (_i == 2 ? SPLIT_ANIM_LENGTH : SPLIT_ANIM_LENGTH * 2),
+            .data=&(animatorData[_i])
+        };
+
+        tweener_start(&(game_state->state->tweeners[_i]));
     }
-
-
 }
 
 void split_render(void *data, SceneData *sceneData) {
-    UNUSED(data);
+    GameState *game_state = (GameState *) data;
     buffer_set_sprite_rotation(0);
-    if (animatorData[3].finished == false) {
+    if (!outro_anim && !game_state->state->tweeners[3].finished) {
         card_render_back((int16_t) deck_start.x, (int16_t) deck_start.y, false, sceneData->buffer, 22);
     }
-    uint8_t end = !initial_anim_complete ? 2 : (!animatorData[2].finished ? 3 : 4);
 
-    for (uint8_t i = 0; i < end; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         buffer_set_transform(&(animatorData[i].transformMatrix));
         card_try_render(animatorData[i].card, 0, 0, false, sceneData->buffer, 22);
-    }
 
-    if (initial_anim_complete) {
-        Vector v;
-        matrix_get_translation(&(animatorData[2].transformMatrix), &v);
+        if (!game_state->state->tweeners[i].finished && i > 1) break;
     }
 
     buffer_set_transform(NULL);
@@ -102,77 +102,61 @@ void split_render(void *data, SceneData *sceneData) {
 }
 
 void split_update(void *data, SceneData *sceneData) {
-    UNUSED(data);
-    initial_anim_complete = animatorData[0].finished == true && animatorData[1].finished == true;
+    GameState *game_state = (GameState *) data;
+    sceneData->dirty = true;
 
-    if(!outro_anim) {
-        for (uint8_t i = 0; i < 2; i++) {
-            if (animatorData[i].finished == false) {
-                card_compute_animation_state(&(animatorData[i]), sceneData->delta_time, 2);
-                sceneData->dirty = true;
-            }
-        }
-        if ((initial_anim_complete && animatorData[3].finished == false)) {
-            for (uint8_t i = 2; i < 4; i++) {
-                if (animatorData[i].finished == false) {
-                    card_compute_animation_state(&(animatorData[i]), sceneData->delta_time, 2);
-                    sceneData->dirty = true;
-                    if (animatorData[i].state >= 0.5f) {
-                        animatorData[i].card->exposed = true;
-                        animatorData[i].end_scale.y = target_scale;
-                    }
-                    break;
-                }
-            }
-        }
-    }else{
+    //start the outro animation after the drawing finishes
+    if (!game_state->state->tweeners[3].finished) return;
 
-        for (uint8_t i = 0; i < 4; i++) {
-            if (animatorData[i].finished == false) {
-                card_compute_animation_state(&(animatorData[i]), sceneData->delta_time, 2);
-                sceneData->dirty = true;
-            }
-        }
-    }
+    timer += sceneData->delta_time;
 
-    timer+=sceneData->delta_time;
-
-    if (animatorData[3].finished && timer > 3 && !outro_anim) {
+    if (timer > 1 && !outro_anim) {
         outro_anim = true;
         CardAnimatorData tmp = animatorData[1];
         animatorData[1] = animatorData[2];
-        animatorData[2]=tmp;
+        animatorData[2] = tmp;
 
         //animate cards back to position
-        for (uint8_t i = 0; i < 2; i++) {
+        for (uint8_t i = 0; i < 4; i++) {
+
             animatorData[i].start_scale = animatorData[i].end_scale;
-            animatorData[i].end_scale = (Vector) {1, 1};
             animatorData[i].start_rotation = animatorData[i].end_rotation;
-            animatorData[i].end_rotation = 0;
-            animatorData[i].state = 0;
-            animatorData[i].finished = false;
             animatorData[i].start_position = animatorData[i].end_position;
-            animatorData[i].end_position = (Vector) {i==0 ? SCREEN_WIDTH- 18 : SCREEN_WIDTH - 10, 50};
+
+            animatorData[i].end_rotation = 0;
+
+
+            if (i > 1) {
+                animatorData[i].end_position.x = i == 2 ? (SCREEN_WIDTH + 18) : (SCREEN_WIDTH + 36);
+            } else {
+                animatorData[i].end_scale = (Vector) {1, 1};
+                animatorData[i].end_position = (Vector) {i == 0 ? SCREEN_WIDTH - 18 : SCREEN_WIDTH - 10, 50};
+            }
+
+            game_state->state->tweeners[i].length = SPLIT_ANIM_LENGTH / 3.f;
+            game_state->state->tweeners[i].delay = i > 1 ? 0 : SPLIT_ANIM_LENGTH / 3.f;
+
+            tweener_start(&(game_state->state->tweeners[i]));
         }
 
-        for (uint8_t i = 2; i < 4; i++) {
-            animatorData[i].start_scale = animatorData[i].end_scale;
-            animatorData[i].end_scale = (Vector){1,1};
-            animatorData[i].start_rotation = animatorData[i].end_rotation;
-            animatorData[i].state = 0;
-            animatorData[i].finished = false;
-            animatorData[i].start_position = animatorData[i].end_position;
-            animatorData[i].end_position = (Vector) {300, 32};
-        }
+        return;
     }
-    if(outro_anim && animatorData[3].finished){
+
+    if (outro_anim && game_state->state->tweeners[0].finished) {
         sceneData->scene_switch = Prev;
     }
 }
 
 void split_input(void *data, SceneData *sceneData, InputKey key, InputType type) {
-    UNUSED(data);
+    GameState *game_state = (GameState *) data;
     if (type == InputTypePress && key == InputKeyOk) {
+
+        for (uint8_t i = 0; i < 4; ++i) {
+            if (!game_state->state->tweeners[i].finished) {
+                tweener_end(&(game_state->state->tweeners[i]));
+            }
+        }
+
         sceneData->scene_switch = Prev;
     }
 }

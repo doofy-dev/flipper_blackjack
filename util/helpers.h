@@ -8,17 +8,15 @@
 #define DEG_2_RAD  0.01745329251994329576f
 #define RAD_2_DEG  565.48667764616278292327f
 
-
 #ifdef DEBUG_BUILD
-#define release(X) _release_debug( X, __FILE__, __LINE__, __FUNCTION__)
+#define release(X) {_release_debug( X, __FILE__, __LINE__, __FUNCTION__);X=NULL}
 #define check_pointer(X) _check_ptr( X, __FILE__, __LINE__, __FUNCTION__)
 #define allocate(X) _allocate( X, __FILE__, __LINE__, __FUNCTION__)
 #else
 #define check_pointer(X) _test_ptr(X)
 #define allocate(X) malloc(X)
-#define release(X) _release(X)
+#define release(X) {_release(X);X=NULL;}
 #endif
-
 
 
 char *get_basename(const char *path);

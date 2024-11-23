@@ -123,7 +123,6 @@ void _release_debug(void *p, const char *file, int line, const char *func) {
 
 void _release(void *p){
     free(p);
-    p=NULL;
 }
 
 void check_leak(){

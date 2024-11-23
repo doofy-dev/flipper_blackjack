@@ -49,6 +49,7 @@ void card_render_front(Card *c, int16_t x, int16_t y, bool selected, Buffer *buf
     if (selected) {
         buffer_draw_box(buffer, x, y, x + 17, height + 1, Flip);
     }
+    buffer_set_sprite_rotation(0);
 }
 
 void card_render_slot(int16_t x, int16_t y, bool selected, Buffer *buffer) {
@@ -198,9 +199,8 @@ void deck_render_vertical(List *deck, uint8_t x, uint8_t y, int8_t selected, Buf
 }
 
 void render_pile(List *deck, bool flipped, int16_t x, int16_t y, Buffer *buffer) {
-    //6 in row
-    ListItem *c = deck->head;//flipped ? deck->tail : deck->head;
-    int8_t mod = 6;
+    ListItem *c = deck->head;
+    int8_t mod = 6; // Number of cards in a row
     int8_t startX = flipped ? (deck->count % mod) * 8 : 0;
 
     if (flipped) {
@@ -219,7 +219,6 @@ void render_pile(List *deck, bool flipped, int16_t x, int16_t y, Buffer *buffer)
         card_render_front(c->data, cx, cy, false, buffer, 22);
 
         id++;
-//        c=flipped? c->prev : c->next;
         c = c->next;
     }
 }
@@ -296,22 +295,23 @@ uint8_t hand_value(List *deck, uint8_t max) {
 
 static Transform transform = {IDENTITY_MATRIX, IDENTITY_MATRIX, IDENTITY_MATRIX, IDENTITY_MATRIX};
 
-void card_compute_animation_state(CardAnimatorData *data, float delta, float speed) {
-    if (data->finished) return;
+bool card_compute_animation_state(Tweener *tweener) {
+    CardAnimatorData *data = tweener->data;
 
-    if (data->state >= 1) {
-        data->finished = true;
-        return;
-    }
-
-    data->state += delta * speed;
-    if (data->state > 1)data->state = 1;
-    float rotation = lerp_number(data->start_rotation, data->end_rotation, data->state);
+    float rotation = lerp_number(data->start_rotation, data->end_rotation, tweener->t);
     Vector scale;
-    vector_lerp(&(data->start_scale), &(data->end_scale), data->state, &scale);
+    vector_lerp(&(data->start_scale), &(data->end_scale), tweener->t, &scale);
     Vector position;
-    vector_lerp(&(data->start_position), &(data->end_position), data->state, &position);
+    vector_lerp(&(data->start_position), &(data->end_position), tweener->t, &position);
 
     compute_transformation_matrix(&position, &scale, rotation, &transform);
     matrix_copy(&(transform.transformation_matrix), &(data->transformMatrix));
+
+    if (data->flip && tweener->t > 0.5 && data->end_scale.y < 0) {
+        data->card->exposed = true;
+        data->end_scale.y *= -1.0f;
+        data->start_scale.y *= scale.y;
+    }
+
+    return false;
 }

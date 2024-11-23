@@ -1,6 +1,5 @@
 #include <blackjack_icons.h>
 #include "play_scene.h"
-#include "../game_state.h"
 #include "../scene_setup.h"
 #include "../util/helpers.h"
 #include "../util/asset.h"
@@ -22,9 +21,19 @@ static MenuItems selectedMenu;
 static char str[10];
 static Buffer *icon_play;
 
-static bool is_doubling = false;
-static bool is_hitting = false;
-static bool swap_hand = false;
+static bool animated = false;
+
+static CardAnimatorData animatorData = {
+    .start_position=(Vector) {64, 6},
+    .flip=true,
+    .start_rotation=0,
+    .end_rotation=0,
+    .end_position=(Vector) {117, 50},
+    .end_scale=(Vector) {1, -1},
+    .start_scale=(Vector) {1, 1},
+    .card=NULL,
+};
+
 
 void play_start(void *data, SceneData *sceneData) {
     GameState *state = (GameState *) data;
@@ -35,10 +44,9 @@ void play_start(void *data, SceneData *sceneData) {
 
     //If the dealer has Ace as the visible card, player can insure the round
     can_insure = state->state->dealer->count == 2 && c && c->value == ACE;
-    is_doubling = false;
-    is_hitting = false;
-    swap_hand = false;
+    animated = false;
     icon_play = asset_get_icon(&I_play);
+    check_menu(state, true);
 }
 
 
@@ -54,17 +62,29 @@ void play_render(void *data, SceneData *sceneData) {
         deck_render(state->state->dealer, Pile, 10, 13, false, false, sceneData->buffer);
     }
 
-/* TODO: maybe do not render the play screen as a whole on split screen
-    //do not render player hand and menu when we split
-    if(sceneData->current_scene && sceneData->current_scene->data == &split_screen)
-        return;*/
+    bool animating = /*!state->state->tweeners[0].finished && */animatorData.card;
+    bool c = state->state->hand[state->state->current_hand]->count < 6;
+    bool c2 = state->state->hand[state->state->current_hand]->count % 6 == 0;
 
     //render player hand
-    deck_render(state->state->hand[state->state->current_hand], PileUpsideDown, SCREEN_WIDTH - 10, SCREEN_HEIGHT - 13,
+    deck_render(state->state->hand[state->state->current_hand], PileUpsideDown,
+                SCREEN_WIDTH - 10 - (animating && c ? 8 : 0), SCREEN_HEIGHT - 13 - (animating && !c && c2 ? 9 : 0),
                 false, false, sceneData->buffer);
 
+    if (!sceneData->current_scene || sceneData->current_scene->data != &play_screen)
+        return;
+
+    //render drawing animation
+    if (animating) {
+        card_render_back(64, 6, false, sceneData->buffer, 22);
+
+        buffer_set_transform(&(animatorData.transformMatrix));
+        card_try_render(animatorData.card, 0, 0, false, sceneData->buffer, 22);
+        buffer_set_transform(NULL);
+    }
+
     //draw arrows for menu
-    if (sceneData->current_scene && sceneData->current_scene->data == &play_screen) {
+    if (!animated) {
         buffer_set_sprite_rotation(-90);
         Vector pos = (Vector) {25, SCREEN_HEIGHT - 23};
         buffer_draw_all(sceneData->buffer, icon_play, &pos);
@@ -98,7 +118,7 @@ void play_render_ui(void *data, SceneData *sceneData) {
     canvas_draw_str_aligned(sceneData->canvas, SCREEN_WIDTH - 7, SCREEN_HEIGHT - 5, AlignCenter, AlignCenter, str);
 
     //if we are on our scene, draw the menu too
-    if (sceneData->current_scene && sceneData->current_scene->data == &play_screen) {
+    if (!animated && sceneData->current_scene && sceneData->current_scene->data == &play_screen) {
         canvas_set_color(sceneData->canvas, ColorBlack);
         canvas_draw_rframe(sceneData->canvas, 0, SCREEN_HEIGHT - 20, 50, 11, 2);
         canvas_draw_str_aligned(sceneData->canvas, 25, SCREEN_HEIGHT - 14, AlignCenter, AlignCenter,
@@ -107,38 +127,91 @@ void play_render_ui(void *data, SceneData *sceneData) {
     }
 }
 
-void play_update(void *data, SceneData *sceneData) {
+void change_active_hand(GameState *game_state, SceneData *sceneData) {
     UNUSED(sceneData);
-    UNUSED(data);
-
-    if (is_doubling) {
+    //if we have more hands animate it, otherwise change scenes
+    if (game_state->state->current_hand < (game_state->state->hand_count - 1)) {
 
     } else {
-
+        sceneData->scene_switch = Index;
+        sceneData->scene_index = 5;
     }
+}
 
+void play_update(void *data, SceneData *sceneData) {
+    UNUSED(sceneData);
+    GameState *game_state = data;
+    sceneData->dirty = sceneData->dirty || animated;
+
+    if (animated && game_state->state->tweeners[0].finished) {
+        list_push_back(list_pop_back(game_state->state->deck),
+                       game_state->state->hand[game_state->state->current_hand]);
+        animatorData.card = NULL;
+        animated = false;
+
+        //if doubled or went over, swap hands
+        if (game_state->state->doubled[game_state->state->current_hand] ||
+            hand_value(game_state->state->hand[game_state->state->current_hand], 21) >= 21) {
+            change_active_hand(game_state, sceneData);
+        }
+        check_menu(game_state, true);
+    }
 }
 
 void next_menu(GameState *game_state) {
     selectedMenu = (selectedMenu + 1) % (Insurance + 1);
-    if (
-        (selectedMenu == Insurance && !can_insure) ||
-
-        (selectedMenu == DoubleDown && !can_double(game_state)) ||
-        (selectedMenu == Split && !can_split(game_state, game_state->state->hand[game_state->state->current_hand]))
-        )
-        next_menu(game_state);
+    check_menu(game_state, true);
 }
 
 void prev_menu(GameState *game_state) {
     selectedMenu = selectedMenu > 0 ? (selectedMenu - 1) : Insurance;
+    check_menu(game_state, false);
+}
+
+void check_menu(GameState *game_state, bool toNext) {
     if (
         (selectedMenu == Insurance && !can_insure) ||
+        (selectedMenu == Hit && hand_value(game_state->state->hand[game_state->state->current_hand], 21) >= 21) ||
 
         (selectedMenu == DoubleDown && !can_double(game_state)) ||
         (selectedMenu == Split && !can_split(game_state, game_state->state->hand[game_state->state->current_hand]))
-        )
-        prev_menu(game_state);
+        ) {
+        if (toNext) {
+            next_menu(game_state);
+        } else {
+            prev_menu(game_state);
+        }
+    }
+}
+
+void draw(GameState *state) {
+    //add card and start animation
+
+    animatorData.card = list_peek_back(state->state->deck);
+    uint8_t id = state->state->hand[state->state->current_hand]->count;
+    if (state->state->hand[state->state->current_hand]->count >= 6) {
+        uint8_t id2 = (int8_t) id / 6;
+        animatorData.end_position.x = SCREEN_WIDTH - 10 + (id % 6) * 8 + (id2 * 4) - 6 * 8;
+        if (id >= 6) animatorData.end_position.x += 8;
+    }
+    animatorData.start_scale = (Vector) {1, 1};
+    animatorData.end_scale = (Vector) {1, -1};
+    state->state->tweeners[0] = (Tweener) {
+        .delay=0,
+        .length=1.f,
+        .update=&card_compute_animation_state,
+        .data=&animatorData
+    };
+
+    tweener_start(&(state->state->tweeners[0]));
+    animated = true;
+}
+
+void doubleDown(GameState *state) {
+    state->state->doubled[state->state->current_hand] = true;
+    state->state->current_bet[state->state->current_hand] *= 2;
+
+    draw(state);
 }
 
 void play_input(void *data, SceneData *sceneData, InputKey key, InputType type) {
@@ -151,20 +224,18 @@ void play_input(void *data, SceneData *sceneData, InputKey key, InputType type) 
         } else if (key == InputKeyDown) {
             next_menu(data);
         } else if (key == InputKeyOk) {
-            if (selectedMenu == DoubleDown) {
-                is_doubling = true;
-            } else if (selectedMenu == Hit) {
-                is_hitting = true;
-            } else if (selectedMenu == Stand) {
-                if (game_state->state->current_hand < (game_state->state->hand_count - 1)) {
-                    game_state->state->current_hand++;
-                    swap_hand = true;
-                    //animate hand transition
-                } else {
-                    //move to the dealer scene
-                    sceneData->scene_switch = Index;
-                    sceneData->scene_index = 5;
+            if (animated) {
+                for (uint8_t i = 0; i < 4; i++) {
+                    tweener_end(&(game_state->state->tweeners[i]));
                 }
+                return;
+            }
+            if (selectedMenu == DoubleDown) {
+                doubleDown(game_state);
+            } else if (selectedMenu == Hit) {
+                draw(game_state);
+            } else if (selectedMenu == Stand) {
+                change_active_hand(game_state, sceneData);
             } else if (selectedMenu == Split) {
                 sceneData->scene_switch = Next; // move to split screen
             }

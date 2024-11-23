@@ -209,8 +209,8 @@ buffer_draw_internal(Buffer *target, Buffer *const sprite, bool is_black, enum P
     float cosrad = cosf(current_sprite_rotation*DEG_2_RAD);
     float sinrad = sinf(current_sprite_rotation*DEG_2_RAD);
 
-    float x_inc = MAX(1 / scaling.x, 0.1);
-    float y_inc = MAX(1 / scaling.y, 0.1);
+    float x_inc = MAX(1 / scaling.x, 0.05f);
+    float y_inc = MAX(1 / scaling.y, 0.05f);
     if ((int) rotation % 45 != 0 || ((int) (current_sprite_rotation)) % 45 != 0) {
         x_inc /= 1.5f;
         y_inc /= 1.5f;

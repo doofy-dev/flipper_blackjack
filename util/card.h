@@ -3,6 +3,7 @@
 #include <furi.h>
 #include "buffer.h"
 #include "list.h"
+#include "tweener.h"
 
 typedef enum {
     NONE = -1,
@@ -45,10 +46,9 @@ typedef struct {
     Vector start_scale;
     Vector end_scale;
 
-    float state;
-    bool finished;
     Matrix transformMatrix;
     Card *card;
+    bool flip;
 } CardAnimatorData;
 
 uint8_t hand_value(List *deck, uint8_t max);
@@ -73,7 +73,7 @@ Card* deck_first_non_flipped(List *deck, int8_t *index);
 
 void deck_render(List *deck, DeckType type, int16_t x, int16_t y, int8_t selected, bool draw_empty, Buffer *buffer);
 
-void card_compute_animation_state(CardAnimatorData *data, float delta, float speed);
+bool card_compute_animation_state(Tweener *data);
 
 void card_load_suit_assets(const Icon **icons);
 void card_load_letter_assets(const Icon **icons);
