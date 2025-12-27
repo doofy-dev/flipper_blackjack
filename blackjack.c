@@ -1,12 +1,13 @@
 #include <furi.h>
 #include <notification/notification_messages.h>
 #include "blackjack_icons.h"
-#include "util/scene.h"
-#include "game_state.h"
-#include "util/helpers.h"
-#include "scene_setup.h"
-#include "settings.h"
-#include "util/asset.h"
+#include "src/util/scene.h"
+#include "src/game_state.h"
+#include "src/util/helpers.h"
+#include "src/scene_setup.h"
+#include "src/settings.h"
+#include "src/graphics/asset.h"
+#include "src/graphics/render.h"
 
 static FuriMutex *update_mutex;
 static const Icon *suits[4] = {&I_hearths, &I_spades, &I_diamonds, &I_clubs};
@@ -44,6 +45,8 @@ static void gui_input_events_callback(const void *value, void *ctx) {
 GameState *prepare() {
     GameState *gameState = malloc(sizeof(GameState));
     update_mutex = (FuriMutex *) furi_mutex_alloc(FuriMutexTypeNormal);
+
+    set_cull_mode(CULL_NONE);
 
     //set main data
     gameState->exit = false;
@@ -92,7 +95,6 @@ static void direct_draw_run(GameState *instance) {
     if (!check_pointer(instance)) return;
     furi_thread_set_current_priority(FuriThreadPriorityIdle);
 
-
     do {
         FuriStatus status = furi_mutex_acquire(update_mutex, 20);
         if (!status) continue;
@@ -109,7 +111,6 @@ static void direct_draw_run(GameState *instance) {
 
 static void cleanup(GameState *instance) {
     furi_pubsub_unsubscribe(instance->input, instance->input_subscription);
-
 
     //free game data
 
@@ -136,7 +137,6 @@ int32_t blackjack_app(void *p) {
     UNUSED(p);
     CHECK_HEAP();
     GameState *instance = prepare();
-
     direct_draw_run(instance);
 
     cleanup(instance);
